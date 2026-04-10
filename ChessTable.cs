@@ -14,13 +14,15 @@ namespace Chess
     public partial class ChessTable : Form
     {
         int size = 100;
-        Dictionary<string, int> map = new Dictionary<string, int>();
+        string piesaActuala;
+        List<Point> CercuriDeDesenat = new List<Point>();
+        Dictionary<string, Point> map = new Dictionary<string, Point>();
         public ChessTable()
         {
             InitializeComponent();
             this.ClientSize = new Size(800, 800);
-            initializarePiese();
-
+            string startPos = "8/5k2/3p4/1p1Pp2p/pP2Pp1P/P4P1K/8/8 b - - 99 50";
+            IncarcaFEN(startPos);
         }
         private void ChessTable_Paint(object sender, PaintEventArgs e)
         {
@@ -43,168 +45,466 @@ namespace Chess
 
             if (CercuriDeDesenat.Count == 0)
                 return;
-            foreach (int i in CercuriDeDesenat)
+            foreach (Point p in CercuriDeDesenat)
             {
-                if (i < 0)
-                    continue;
+                int drawX = p.X * size;
+                int drawY = (7 - p.Y) * size;
 
-
-                int x = (i - 1) % 8;
-                int y = (64 - i) / 8;
-
-
-                x *= size;
-                y *= size;
-
-                if (x > 700 || y > 700)
-                    continue;
-
-                Pen pen = new Pen(Color.Blue, 5);
-                e.Graphics.DrawEllipse(pen, x + 10, y + 10, 80, 80);
+                int alpha = 100;
+                using (Pen pen = new Pen(Color.FromArgb(alpha, Color.LightCyan), 3))
+                {
+                    using (SolidBrush b = new SolidBrush(Color.FromArgb(alpha, Color.LightCyan)))
+                    {
+                        e.Graphics.DrawEllipse(pen, drawX + 10, drawY + 10, 80, 80);
+                        e.Graphics.FillEllipse(b, drawX + 10, drawY + 10, 80, 80);
+                    }
+                }
             }
         }
-        List<int> CercuriDeDesenat = new List<int>();
-        string piesaActuala;
+        bool Player = true;
         void PieceClick(object sender, MouseEventArgs e)
         {
             CercuriDeDesenat.Clear();
             PictureBox pic = sender as PictureBox;
-            piesaActuala = pic.Name;
-            if (pic.Name.Contains("Knight"))
-            {
-                int numarCelula = map[pic.Name];
-                int x = (numarCelula - 1) % 8;
-                int y = (numarCelula - 1) / 8;
 
+            if (pic == null)
+                return;
+
+            piesaActuala = pic.Name;
+            Point pos = map[piesaActuala];
+            if (pic.Name.Contains("KnightW") && Player)
+            {
                 int[] dx = { 1, 1, -1, -1, 2, 2, -2, -2 };
                 int[] dy = { 2, -2, 2, -2, 1, -1, 1, -1 };
 
                 for (int k = 0; k < 8; k++)
                 {
-                    int nx = x + dx[k];
-                    int ny = y + dy[k];
+                    int nx = pos.X + dx[k];
+                    int ny = pos.Y + dy[k];
 
                     if (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
                     {
-                        int poz = ny * 8 + nx + 1;
-                        if(NuExistaPiesa(poz))
-                            CercuriDeDesenat.Add(poz);
+                        Point newPos = new Point(nx, ny);
+                        if (NuExistaPiesa(newPos))
+                            CercuriDeDesenat.Add(newPos);
                     }
                 }
-                this.Invalidate();
+                Player = !Player;
             }
-            if (pic.Name.Contains("PawnW"))
+            else if (pic.Name.Contains("KnightB") && !Player)
             {
-                int numarCelula = map[pic.Name]; 
-                if (NuExistaPiesa(numarCelula + 8))
-                    CercuriDeDesenat.Add(numarCelula + 8);
+                int[] dx = { 1, 1, -1, -1, 2, 2, -2, -2 };
+                int[] dy = { 2, -2, 2, -2, 1, -1, 1, -1 };
 
-                if (numarCelula >= 9 && numarCelula <= 16) 
+                for (int k = 0; k < 8; k++)
                 {
-                    if (NuExistaPiesa(numarCelula + 8) && NuExistaPiesa(numarCelula + 16))
-                        CercuriDeDesenat.Add(numarCelula + 16);
+                    int nx = pos.X + dx[k];
+                    int ny = pos.Y + dy[k];
+
+                    if (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                    {
+                        Point newPos = new Point(nx, ny);
+                        if (NuExistaPiesa(newPos))
+                            CercuriDeDesenat.Add(newPos);
+                    }
                 }
-                this.Invalidate();
+                Player = !Player;
             }
-            if (pic.Name.Contains("PawnB"))
+            else if (pic.Name.Contains("KnightW") && Player)
             {
-                int numarCelula = map[pic.Name];
-                if (NuExistaPiesa(numarCelula - 8))
-                    CercuriDeDesenat.Add(numarCelula - 8);
-
-                if (numarCelula >= 49 && numarCelula <= 56)
+                if (pos.Y + 1 < 8 && NuExistaPiesa(new Point(pos.X, pos.Y + 1)))
                 {
-                    if (NuExistaPiesa(numarCelula - 8) && NuExistaPiesa(numarCelula - 16))
-                        CercuriDeDesenat.Add(numarCelula - 16);
+                    CercuriDeDesenat.Add(new Point(pos.X, pos.Y + 1));
+                    if (pos.Y == 1 && NuExistaPiesa(new Point(pos.X, pos.Y + 2)))
+                        CercuriDeDesenat.Add(new Point(pos.X, pos.Y + 2));
                 }
-                this.Invalidate();
+                Player = !Player;
             }
+            else if (pic.Name.Contains("PawnB") && !Player)
+            {
+                if (pos.Y - 1 >= 0 && NuExistaPiesa(new Point(pos.X, pos.Y - 1)))
+                {
+                    CercuriDeDesenat.Add(new Point(pos.X, pos.Y - 1));
+                    if (pos.Y == 6 && NuExistaPiesa(new Point(pos.X, pos.Y - 2)))
+                        CercuriDeDesenat.Add(new Point(pos.X, pos.Y - 2));
+                }
+                Player = !Player;
+            }
+            else if (pic.Name.Contains("RookW") && Player)
+            {
+                int[] dx = { 0, 0, 1, -1 };
+                int[] dy = { 1, -1, 0, 0 };
+                for (int d = 0; d < 4; d++)
+                {
+                    int nx = pos.X + dx[d];
+                    int ny = pos.Y + dy[d];
+
+                    while (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                    {
+                        Point nextPos = new Point(nx, ny);
+
+                        if (NuExistaPiesa(nextPos))
+                        {
+                            CercuriDeDesenat.Add(nextPos);
+                        }
+                        else
+                        {
+                            //daca e a adversarului sa fac functie
+                            break;
+                        }
+
+                        nx += dx[d];
+                        ny += dy[d];
+                    }
+                }
+                Player = !Player;
+            }
+            else if (pic.Name.Contains("RookB") && !Player)
+            {
+                int[] dx = { 0, 0, 1, -1 };
+                int[] dy = { 1, -1, 0, 0 };
+                for (int d = 0; d < 4; d++)
+                {
+                    int nx = pos.X + dx[d];
+                    int ny = pos.Y + dy[d];
+
+                    while (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                    {
+                        Point nextPos = new Point(nx, ny);
+
+                        if (NuExistaPiesa(nextPos))
+                        {
+                            CercuriDeDesenat.Add(nextPos);
+                        }
+                        else
+                        {
+                            //daca e a adversarului sa fac functie
+                            break;
+                        }
+
+                        nx += dx[d];
+                        ny += dy[d];
+                    }
+                }
+                Player = !Player;
+            }
+            else if (pic.Name.Contains("BishopW") && Player)
+            {
+                int[] dx = { 1, 1, -1, -1 };
+                int[] dy = { 1, -1, 1, -1 };
+
+                for (int d = 0; d < 4; d++)
+                {
+                    int nx = pos.X + dx[d];
+                    int ny = pos.Y + dy[d];
+
+                    while (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                    {
+                        Point nextPos = new Point(nx, ny);
+                        if (NuExistaPiesa(nextPos))
+                        {
+                            CercuriDeDesenat.Add(nextPos);
+                        }
+                        else
+                        {
+                            //daca e a adversarului sa fac functie
+                            break;
+                        }
+                        nx += dx[d];
+                        ny += dy[d];
+                    }
+                }
+                Player = !Player;
+            }
+            else if (pic.Name.Contains("BishopB") && !Player)
+            {
+                int[] dx = { 1, 1, -1, -1 };
+                int[] dy = { 1, -1, 1, -1 };
+
+                for (int d = 0; d < 4; d++)
+                {
+                    int nx = pos.X + dx[d];
+                    int ny = pos.Y + dy[d];
+
+                    while (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                    {
+                        Point nextPos = new Point(nx, ny);
+                        if (NuExistaPiesa(nextPos))
+                        {
+                            CercuriDeDesenat.Add(nextPos);
+                        }
+                        else
+                        {
+                            //daca e a adversarului sa fac functie
+                            break;
+                        }
+                        nx += dx[d];
+                        ny += dy[d];
+                    }
+                }
+                Player = !Player;
+            }
+            else if (pic.Name.Contains("QueenW") && Player)
+            {
+                int[] dx = { 0, 0, 1, -1, 1, 1, -1, -1 };
+                int[] dy = { 1, -1, 0, 0, 1, -1, 1, -1 };
+
+                for (int d = 0; d < 8; d++)
+                {
+                    int nx = pos.X + dx[d];
+                    int ny = pos.Y + dy[d];
+
+                    while (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                    {
+                        Point nextPos = new Point(nx, ny);
+                        if (NuExistaPiesa(nextPos))
+                        {
+                            CercuriDeDesenat.Add(nextPos);
+                        }
+                        else
+                        {
+                            // functie
+                            break;
+                        }
+                        nx += dx[d];
+                        ny += dy[d];
+                    }
+                }
+                Player = !Player;
+            }
+            else if (pic.Name.Contains("QueenB") && !Player)
+            {
+                int[] dx = { 0, 0, 1, -1, 1, 1, -1, -1 };
+                int[] dy = { 1, -1, 0, 0, 1, -1, 1, -1 };
+
+                for (int d = 0; d < 8; d++)
+                {
+                    int nx = pos.X + dx[d];
+                    int ny = pos.Y + dy[d];
+
+                    while (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                    {
+                        Point nextPos = new Point(nx, ny);
+                        if (NuExistaPiesa(nextPos))
+                        {
+                            CercuriDeDesenat.Add(nextPos);
+                        }
+                        else
+                        {
+                            // functie
+                            break;
+                        }
+                        nx += dx[d];
+                        ny += dy[d];
+                    }
+                }
+                Player = !Player;
+            }
+            else if (pic.Name.Contains("KingW") && Player)
+            {
+                int[] dx = { 0, 0, 1, -1, 1, 1, -1, -1 };
+                int[] dy = { 1, -1, 0, 0, 1, -1, 1, -1 };
+
+                for (int d = 0; d < 8; d++)
+                {
+                    int nx = pos.X + dx[d];
+                    int ny = pos.Y + dy[d];
+
+                    if (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                    {
+                        Point nextPos = new Point(nx, ny);
+                        if (NuExistaPiesa(nextPos))
+                        {
+                            CercuriDeDesenat.Add(nextPos);
+                        }
+                    }
+                }
+                Player = !Player;
+            }
+            else if (pic.Name.Contains("KingB") && !Player)
+            {
+                int[] dx = { 0, 0, 1, -1, 1, 1, -1, -1 };
+                int[] dy = { 1, -1, 0, 0, 1, -1, 1, -1 };
+
+                for (int d = 0; d < 8; d++)
+                {
+                    int nx = pos.X + dx[d];
+                    int ny = pos.Y + dy[d];
+
+                    if (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                    {
+                        Point nextPos = new Point(nx, ny);
+                        if (NuExistaPiesa(nextPos))
+                        {
+                            CercuriDeDesenat.Add(nextPos);
+                        }
+                    }
+                }
+                Player = !Player;
+            }
+            this.Invalidate();
+        }
+
+        List<Point> AttackingCellsByWhite = new List<Point>();
+        List<Point> AttackingCellsByBlack = new List<Point>();
+
+        void GenerateAllAttackingCells()
+        {
+            Point pos = map["KnightW"];
+            int[] dx = { 1, 1, -1, -1, 2, 2, -2, -2 };
+            int[] dy = { 2, -2, 2, -2, 1, -1, 1, -1 };
+
+            for (int k = 0; k < 8; k++)
+            {
+                int nx = pos.X + dx[k];
+                int ny = pos.Y + dy[k];
+
+                if (nx >= 0 && nx < 8 && ny >= 0 && ny < 8)
+                {
+                    Point newPos = new Point(nx, ny);
+                    if (NuExistaPiesa(newPos))
+                        AttackingCellsByWhite.Add(newPos);
+                }
+            }
+            
         }
         private void ChessTable_MouseClick(object sender, MouseEventArgs e)
         {
-            int x = e.X;
-            int y = e.Y;
-            x /= 100;
-            y /= 100;
-            int numarCelula = (7 - y) * 8 + x + 1;
-            if(CercuriDeDesenat.Contains(numarCelula))
-                map[piesaActuala] = numarCelula;
-
-            FacutMutare();
+            int x = e.X / 100;
+            int y = e.Y / 100;
+            Point celula = new Point(x, 7 - y);
+            if (CercuriDeDesenat.Contains(celula))
+            {
+                map[piesaActuala] = celula;
+                FacutMutare();
+            }
         }
 
-        bool NuExistaPiesa(int poz)
+        bool NuExistaPiesa(Point p)
         {
-            foreach(var pair in map)
+            foreach (var pair in map)
             {
-                if (pair.Value == poz)
+                if (pair.Value == p)
                     return false;
             }
             return true;
         }
-        Point TransformareNrCelulaInPozitieDeDesenat(int poz)
-        {
-
-            int x = (poz - 1) % 8;
-            int y = (64 - poz) / 8;
-            return new Point(x, y);
-        }
 
         void FacutMutare()
         {
+            if (string.IsNullOrEmpty(piesaActuala)) return;
+
             PictureBox pic = this.Controls.Find(piesaActuala, true).FirstOrDefault() as PictureBox;
-            Point p = TransformareNrCelulaInPozitieDeDesenat(map[piesaActuala]);
-            pic.Location = new Point(p.X * size, p.Y * size);
+            if (pic != null)
+            {
+                Point p = map[piesaActuala];
+                pic.Location = new Point(p.X * size, (7 - p.Y) * size);
+            }
             CercuriDeDesenat.Clear();
             this.Invalidate();
         }
-        void initializarePiese()
+        void IncarcaFEN(string fen)
         {
-            // Knight
-            map.Add("KnightB1", 58);
-            map.Add("KnightB2", 63);
-            map.Add("KnightW1", 2);
-            map.Add("KnightW2", 7);
+            map.Clear();
+            CercuriDeDesenat.Clear();
 
-            //Rook
-            map.Add("RookB1", 57);
-            map.Add("RookB2", 64);
-            map.Add("RookW1", 1);
-            map.Add("RookW2", 8);
-            
-            //Bishop
-            map.Add("BishopB1", 59);
-            map.Add("BishopB2", 62);
-            map.Add("BishopW1", 3);
-            map.Add("BishopW2", 6);
+            foreach (PictureBox pic in this.Controls)
+                this.Controls.Remove(pic);
 
-            //Queen
-            map.Add("QueenB", 60);
-            map.Add("QueenW", 4);
+            string[] parti = fen.Split(' ');
+            string pozitii = parti[0];
 
-            //King
-            map.Add("KingB", 61);
-            map.Add("KingW", 5);
+            int rand = 7;
+            int coloana = 0;
 
-            //PawnB
-            map.Add("PawnB1", 49);
-            map.Add("PawnB2", 50);
-            map.Add("PawnB3", 51);
-            map.Add("PawnB4", 52);
-            map.Add("PawnB5", 53);
-            map.Add("PawnB6", 54);
-            map.Add("PawnB7", 55);
-            map.Add("PawnB8", 56);
+            Dictionary<char, int> counter = new Dictionary<char, int>();
 
-            //PawnW
-            map.Add("PawnW1", 9);
-            map.Add("PawnW2", 10);
-            map.Add("PawnW3", 11);
-            map.Add("PawnW4", 12);
-            map.Add("PawnW5", 13);
-            map.Add("PawnW6", 14);
-            map.Add("PawnW7", 15);
-            map.Add("PawnW8", 16);
+            foreach (char c in pozitii)
+            {
+                if (c == '/')
+                {
+                    rand--;
+                    coloana = 0;
+                }
+                else if (char.IsDigit(c))
+                {
+                    coloana += (int)char.GetNumericValue(c);
+                }
+                else
+                {
+                    string numeBaza = GetNumePiesa(c);
+                    if (!counter.ContainsKey(c)) counter[c] = 1;
+
+                    string IDUnic = numeBaza + counter[c];
+                    Point pos = new Point(coloana, rand);
+
+                    map.Add(IDUnic, pos);
+
+                    CreazaPictureBoxPiesa(IDUnic, pos, numeBaza);
+
+                    counter[c]++;
+                    coloana++;
+                }
+            }
+            this.Invalidate();
         }
+
+        string GetNumePiesa(char c)
+        {
+            bool isWhite = char.IsUpper(c);
+            char tip = char.ToLower(c);
+            string culoare = isWhite ? "W" : "B";
+
+            switch (tip)
+            {
+                case 'p': return "Pawn" + culoare;
+                case 'r': return "Rook" + culoare;
+                case 'n': return "Knight" + culoare;
+                case 'b': return "Bishop" + culoare;
+                case 'q': return "Queen" + culoare;
+                case 'k': return "King" + culoare;
+                default: return "Unknown";
+            }
+        }
+
+        void CreazaPictureBoxPiesa(string id, Point pos, string numeBaza)
+        {
+            PictureBox pic = new PictureBox();
+            pic.Name = id;
+            pic.Size = new Size(size, size);
+            pic.Location = new Point(pos.X * size, (7 - pos.Y) * size);
+            pic.SizeMode = PictureBoxSizeMode.StretchImage;
+            pic.BackColor = Color.Transparent;
+
+
+            switch (numeBaza)
+            {
+                case "PawnW": pic.Image = Properties.Resources.PawnW; break;
+                case "PawnB": pic.Image = Properties.Resources.PawnB; break;
+
+                case "RookW": pic.Image = Properties.Resources.RookW; break;
+                case "RookB": pic.Image = Properties.Resources.RookB; break;
+
+                case "KnightW": pic.Image = Properties.Resources.KnightW; break;
+                case "KnightB": pic.Image = Properties.Resources.KnightB; break;
+
+                case "BishopW": pic.Image = Properties.Resources.BishopW; break;
+                case "BishopB": pic.Image = Properties.Resources.BishopB; break;
+
+                case "QueenW": pic.Image = Properties.Resources.QueenW; break;
+                case "QueenB": pic.Image = Properties.Resources.QueenB; break;
+
+                case "KingW": pic.Image = Properties.Resources.KingW; break;
+                case "KingB": pic.Image = Properties.Resources.KingB; break;
+
+                default: break;
+            }
+
+
+            pic.MouseDown += PieceClick;
+            this.Controls.Add(pic);
+            pic.BringToFront();
+        }
+
     }
 }
