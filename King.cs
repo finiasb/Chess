@@ -36,15 +36,15 @@ namespace Chess
         public bool VerifyIfInCheck(Piece[,] board)
         {
             List<Point> possibleMoves = new List<Point>();
-            foreach(Piece piece in board) 
+            foreach (Piece piece in board)
             {
                 possibleMoves.Clear();
-                if(piece != null && piece.Color != this.Color)
+                if (piece != null && piece.Color != this.Color)
                 {
                     possibleMoves = piece.GetPossibleMoves(board);
-                    foreach(Point p in possibleMoves)
+                    foreach (Point p in possibleMoves)
                     {
-                        if(p.X == this.Position.X &&  p.Y == this.Position.Y)
+                        if (p.X == this.Position.X && p.Y == this.Position.Y)
                         {
                             return true;
                         }

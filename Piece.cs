@@ -13,7 +13,6 @@ namespace Chess
         public PieceColor Color { get; set; }
         public PieceType Type { get; set; }
         public Point Position { get; set; }
-
         public Piece(PieceColor color, PieceType type, Point position)
         {
             Color = color;

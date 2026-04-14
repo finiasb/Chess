@@ -75,11 +75,20 @@ namespace Chess
         public void MovePiece(Point from, Point to)
         {
             Piece p = Grid[from.X, from.Y];
+
             if (p != null)
             {
                 p.Position = to;
                 Grid[to.X, to.Y] = p;
                 Grid[from.X, from.Y] = null;
+
+                if (p is Pawn)
+                {
+                    if ((p.Color == PieceColor.White && to.Y == 7) || (p.Color == PieceColor.Black && to.Y == 0))
+                    {
+                        Grid[to.X, to.Y] = new Queen(p.Color, PieceType.Queen, to);
+                    }
+                }
 
                 CurrentTurn = (CurrentTurn == PieceColor.White) ? PieceColor.Black : PieceColor.White;
             }

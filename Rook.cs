@@ -31,8 +31,8 @@ namespace Chess
                     else
                     {
                         if (board[nx, ny].Color != this.Color)
-                            moves.Add(new Point(nx, ny)); 
-                        break; 
+                            moves.Add(new Point(nx, ny));
+                        break;
                     }
                     nx += dx[i];
                     ny += dy[i];

@@ -158,6 +158,24 @@ namespace Chess
 
             joculMeu.MovePiece(pozitieVeche, tinta);
 
+            Piece piesaDupaMutare = joculMeu.Grid[tinta.X, tinta.Y];
+            foreach (Control c in this.Controls)
+            {
+                if (c is PictureBox pb && pb.Tag == piesaSelectata)
+                {
+                    pb.Location = new Point(tinta.X * size, (7 - tinta.Y) * size);
+
+                    if (piesaDupaMutare != piesaSelectata)
+                    {
+                        pb.Tag = piesaDupaMutare; 
+                        string numeResursa = piesaDupaMutare.Type.ToString() + (piesaDupaMutare.Color == PieceColor.White ? "W" : "B");
+                        pb.Image = (Image)Properties.Resources.ResourceManager.GetObject(numeResursa);
+                    }
+                    break;
+                }
+            }
+
+
             foreach (Control c in this.Controls)
             {
                 if (c is PictureBox pb && pb.Tag == piesaSelectata)
