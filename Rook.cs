@@ -10,7 +10,6 @@ namespace Chess
     public class Rook : Piece
     {
         public Rook(PieceColor color, PieceType type, Point position) : base(color, PieceType.Rook, position) { }
-
         public override List<Point> GetPossibleMoves(Piece[,] board)
         {
             List<Point> moves = new List<Point>();
@@ -40,6 +39,5 @@ namespace Chess
             }
             return moves;
         }
-
     }
 }

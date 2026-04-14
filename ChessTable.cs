@@ -14,17 +14,16 @@ namespace Chess
     public partial class ChessTable : Form
     {
         int size = 100;
-        Board joculMeu = new Board(); 
-        Piece piesaSelectata = null;  
-        List<Point> CercuriDeDesenat = new List<Point>();
-
+        Board myGame = new Board(); 
+        Piece selectedPiece = null;  
+        List<Point> AllowedMovingToDraw = new List<Point>();
         public ChessTable()
         {
             InitializeComponent();
             this.ClientSize = new Size(800, 800);
 
-            string startPos = "r1b1k2r/ppp1q3/5npp/4N3/3P4/2P3P1/PP2PP1P/RNBQKB1R w KQkq - 0 1";
-            IncarcaJoc(startPos);
+            string startPosition = "r1b1k2r/ppp1q3/5npp/4N3/3P4/2P3P1/PP2PP1P/RNBQKB1R w KQkq - 0 1";
+            LoadGame(startPosition);
         }
         private void ChessTable_Paint(object sender, PaintEventArgs e)
         {
@@ -47,8 +46,8 @@ namespace Chess
 
             foreach (PieceColor color in Enum.GetValues(typeof(PieceColor)))
             {
-                King king = joculMeu.GetKing(color, joculMeu.Grid);
-                if (king != null && king.VerifyIfInCheck(joculMeu.Grid))
+                King king = myGame.GetKing(color, myGame.Grid);
+                if (king != null && king.VerifyIfInCheck(myGame.Grid))
                 {
                     int drawX = king.Position.X * size;
                     int drawY = (7 - king.Position.Y) * size;
@@ -57,9 +56,9 @@ namespace Chess
                 }
             }
                 
-            if (CercuriDeDesenat.Count == 0) return;
+            if (AllowedMovingToDraw.Count == 0) return;
 
-            foreach (Point p in CercuriDeDesenat)
+            foreach (Point p in AllowedMovingToDraw)
             {
                 int drawX = p.X * size;
                 int drawY = (7 - p.Y) * size;
@@ -81,35 +80,34 @@ namespace Chess
 
             int x = pic.Location.X / size;
             int y = 7 - (pic.Location.Y / size);
-            Point locatieClick = new Point(x, y);
+            Point ClickLocation = new Point(x, y);
 
-            if (piesaSelectata != null && CercuriDeDesenat.Contains(locatieClick))
+            if (selectedPiece != null && AllowedMovingToDraw.Contains(ClickLocation))
             {
-                ExecutaMutare(locatieClick);
+                ExecuteMove(ClickLocation);
                 return;
             }
 
-            Piece p = joculMeu.Grid[x, y];
-            if (p != null && p.Color == joculMeu.CurrentTurn)
+            Piece p = myGame.Grid[x, y];
+            if (p != null && p.Color == myGame.CurrentTurn)
             {
-                piesaSelectata = p;
-                CercuriDeDesenat = GetLegalMoves(piesaSelectata);
+                selectedPiece = p;
+                AllowedMovingToDraw = GetLegalMoves(selectedPiece);
             }
             else
             {
-                CercuriDeDesenat.Clear();
-                piesaSelectata = null;
+                AllowedMovingToDraw.Clear();
+                selectedPiece = null;
             }
-            
             this.Invalidate();
         }
         List<Point> GetLegalMoves(Piece piesa)
         {
-            List<Point> pseudoMoves = piesa.GetPossibleMoves(joculMeu.Grid);
+            List<Point> pseudoMoves = piesa.GetPossibleMoves(myGame.Grid);
             List<Point> legalMoves = new List<Point>();
 
             Point originalPos = piesa.Position;
-            Piece[,] board = joculMeu.Grid;
+            Piece[,] board = myGame.Grid;
 
             foreach (Point targetPos in pseudoMoves)
             {
@@ -118,7 +116,7 @@ namespace Chess
                 board[originalPos.X, originalPos.Y] = null;
                 piesa.Position = targetPos; 
 
-                King myKing = joculMeu.GetKing(piesa.Color, board);
+                King myKing = myGame.GetKing(piesa.Color, board);
                 if (myKing != null && !myKing.VerifyIfInCheck(board))
                 {
                     legalMoves.Add(targetPos);
@@ -128,112 +126,110 @@ namespace Chess
                 board[targetPos.X, targetPos.Y] = targetPieceBackup;
                 piesa.Position = originalPos;
             }
-
             return legalMoves;
         }
-        void ExecutaMutare(Point tinta)
+        void ExecuteMove(Point target)
         {
-            if (piesaSelectata == null) return;
+            if (selectedPiece == null) return;
 
-            Point pozitieVeche = piesaSelectata.Position;
+            Point oldPosition = selectedPiece.Position;
 
-            PictureBox piesaDeSters = null;
+            PictureBox pieceToDelete = null;
             foreach (Control c in this.Controls)
             {
-                if (c is PictureBox pb && pb.Location.X == tinta.X * size && pb.Location.Y == (7 - tinta.Y) * size)
+                if (c is PictureBox pb && pb.Location.X == target.X * size && pb.Location.Y == (7 - target.Y) * size)
                 {
-                    if (pb.Tag != piesaSelectata)
+                    if (pb.Tag != selectedPiece)
                     {
-                        piesaDeSters = pb;
+                        pieceToDelete = pb;
                         break;
                     }
                 }
             }
 
-            if (piesaDeSters != null)
+            if (pieceToDelete != null)
             {
-                this.Controls.Remove(piesaDeSters);
-                piesaDeSters.Dispose(); 
+                this.Controls.Remove(pieceToDelete);
+                pieceToDelete.Dispose(); 
             }
 
-            joculMeu.MovePiece(pozitieVeche, tinta);
+            myGame.MovePiece(oldPosition, target);
 
-            Piece piesaDupaMutare = joculMeu.Grid[tinta.X, tinta.Y];
+            Piece pieceAfterMove = myGame.Grid[target.X, target.Y];
             foreach (Control c in this.Controls)
             {
-                if (c is PictureBox pb && pb.Tag == piesaSelectata)
+                if (c is PictureBox pb && pb.Tag == selectedPiece)
                 {
-                    pb.Location = new Point(tinta.X * size, (7 - tinta.Y) * size);
+                    pb.Location = new Point(target.X * size, (7 - target.Y) * size);
 
-                    if (piesaDupaMutare != piesaSelectata)
+                    if (pieceAfterMove != selectedPiece)
                     {
-                        pb.Tag = piesaDupaMutare; 
-                        string numeResursa = piesaDupaMutare.Type.ToString() + (piesaDupaMutare.Color == PieceColor.White ? "W" : "B");
-                        pb.Image = (Image)Properties.Resources.ResourceManager.GetObject(numeResursa);
+                        pb.Tag = pieceAfterMove; 
+                        string nameResource = pieceAfterMove.Type.ToString() + (pieceAfterMove.Color == PieceColor.White ? "W" : "B");
+                        pb.Image = (Image)Properties.Resources.ResourceManager.GetObject(nameResource);
                     }
                     break;
                 }
             }
 
-
             foreach (Control c in this.Controls)
             {
-                if (c is PictureBox pb && pb.Tag == piesaSelectata)
+                if (c is PictureBox pb && pb.Tag == selectedPiece)
                 {
-                    pb.Location = new Point(tinta.X * size, (7 - tinta.Y) * size);
+                    pb.Location = new Point(target.X * size, (7 - target.Y) * size);
                     break;
                 }
             }
 
-            CercuriDeDesenat.Clear();
-            piesaSelectata = null;
+            AllowedMovingToDraw.Clear();
+            selectedPiece = null;
             this.Invalidate();
-            if (!ExistaMutariLegale(joculMeu.CurrentTurn))
+            if (!existLegalMoves(myGame.CurrentTurn))
             {
-                King regeCurent = joculMeu.GetKing(joculMeu.CurrentTurn, joculMeu.Grid);
-                if (regeCurent.VerifyIfInCheck(joculMeu.Grid))
+                King king = myGame.GetKing(myGame.CurrentTurn, myGame.Grid);
+                if (king.VerifyIfInCheck(myGame.Grid))
                 {
-                    MessageBox.Show($"Șah-Mat! Jucătorul {(joculMeu.CurrentTurn == PieceColor.White ? "Negru" : "Alb")} a câștigat.");
+                    MessageBox.Show($"Check Mate! Player {(myGame.CurrentTurn == PieceColor.White ? "Black" : "White")} won.");
                 }
                 else
                 {
-                    MessageBox.Show("Remiză (Pat)!");
+                    MessageBox.Show("Tie");
                 }
             }
         }
-        private void ChessTable_MouseClick(object sender, MouseEventArgs e)
+        void ChessTable_MouseClick(object sender, MouseEventArgs e)
         {
             int x = e.X / size;
             int y = 7 - (e.Y / size);
-            Point tinta = new Point(x, y);
+            Point target = new Point(x, y);
 
-            if (piesaSelectata != null && CercuriDeDesenat.Contains(tinta))
+            if (selectedPiece != null && AllowedMovingToDraw.Contains(target))
             {
-                ExecutaMutare(tinta);
+                ExecuteMove(target);
             }
         }
-        void IncarcaJoc(string fen)
+        void LoadGame(string fen)
         {
-            joculMeu.IncarcaFEN(fen);
+            myGame.LoadFen(fen);
 
-            var deSters = this.Controls.OfType<PictureBox>().ToList();
-            foreach (var p in deSters) this.Controls.Remove(p);
+            var piecesToDelete = this.Controls.OfType<PictureBox>().ToList();
+            foreach (var p in piecesToDelete) this.Controls.Remove(p);
 
             for (int x = 0; x < 8; x++)
             {
                 for (int y = 0; y < 8; y++)
                 {
-                    Piece piesa = joculMeu.Grid[x, y];
-                    if (piesa != null)
+                    Piece piece = myGame.Grid[x, y];
+                    if (piece != null)
                     {
-                        CreazaPictureBoxPiesa(piesa);
+                        createPictureBoxPiece(piece);
                     }
                 }
             }
         }
-        bool ExistaMutariLegale(PieceColor color)
+        bool existLegalMoves(PieceColor color)
         {
-            foreach (Piece p in joculMeu.Grid)
+            foreach (Piece p in myGame.Grid)
             {
                 if (p != null && p.Color == color)
                 {
@@ -243,17 +239,17 @@ namespace Chess
             }
             return false; 
         }
-        void CreazaPictureBoxPiesa(Piece piesa)
+        void createPictureBoxPiece(Piece piece)
         {
             PictureBox pic = new PictureBox();
             pic.Size = new Size(size, size);
-            pic.Location = new Point(piesa.Position.X * size, (7 - piesa.Position.Y) * size);
+            pic.Location = new Point(piece.Position.X * size, (7 - piece.Position.Y) * size);
             pic.SizeMode = PictureBoxSizeMode.StretchImage;
             pic.BackColor = Color.Transparent;
 
-            pic.Tag = piesa;
+            pic.Tag = piece;
 
-            string numeResursa = piesa.Type.ToString() + (piesa.Color == PieceColor.White ? "W" : "B");
+            string numeResursa = piece.Type.ToString() + (piece.Color == PieceColor.White ? "W" : "B");
             pic.Image = (Image)Properties.Resources.ResourceManager.GetObject(numeResursa);
 
             pic.MouseDown += PieceClick;

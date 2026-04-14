@@ -8,42 +8,40 @@ namespace Chess
     {
         public Piece[,] Grid { get; private set; }
         public PieceColor CurrentTurn { get; private set; }
-
         public Board()
         {
             Grid = new Piece[8, 8];
             CurrentTurn = PieceColor.White;
         }
-
-        public void IncarcaFEN(string fen)
+        public void LoadFen(string fen)
         {
             Array.Clear(Grid, 0, Grid.Length);
 
-            string[] parti = fen.Split(' ');
-            string pozitii = parti[0];
-            CurrentTurn = (parti[1] == "w") ? PieceColor.White : PieceColor.Black;
+            string[] parts = fen.Split(' ');
+            string positions = parts[0];
+            CurrentTurn = (parts[1] == "w") ? PieceColor.White : PieceColor.Black;
 
-            int rand = 7; 
-            int coloana = 0;
+            int row = 7; 
+            int col = 0;
 
-            foreach (char c in pozitii)
+            foreach (char c in positions)
             {
                 if (c == '/')
                 {
-                    rand--;
-                    coloana = 0;
+                    row--;
+                    col = 0;
                 }
                 else if (char.IsDigit(c))
                 {
-                    coloana += (int)char.GetNumericValue(c);
+                    col += (int)char.GetNumericValue(c);
                 }
                 else
                 {
                     PieceColor color = char.IsUpper(c) ? PieceColor.White : PieceColor.Black;
-                    Point pos = new Point(coloana, rand);
+                    Point pos = new Point(col, row);
 
-                    Grid[coloana, rand] = CreatePiece(c, color, pos);
-                    coloana++;
+                    Grid[col, row] = CreatePiece(c, color, pos);
+                    col++;
                 }
             }
         }
@@ -89,7 +87,6 @@ namespace Chess
                         Grid[to.X, to.Y] = new Queen(p.Color, PieceType.Queen, to);
                     }
                 }
-
                 CurrentTurn = (CurrentTurn == PieceColor.White) ? PieceColor.Black : PieceColor.White;
             }
         }

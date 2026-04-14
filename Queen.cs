@@ -10,7 +10,6 @@ namespace Chess
     public class Queen : Piece
     {
         public Queen(PieceColor color, PieceType type, Point position) : base(color, PieceType.Queen, position) { }
-
         public override List<Point> GetPossibleMoves(Piece[,] board)
         {
             List<Point> moves = new List<Point>();
