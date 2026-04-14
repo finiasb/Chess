@@ -93,17 +93,43 @@ namespace Chess
             if (p != null && p.Color == joculMeu.CurrentTurn)
             {
                 piesaSelectata = p;
-                CercuriDeDesenat = piesaSelectata.GetPossibleMoves(joculMeu.Grid);
+                CercuriDeDesenat = GetLegalMoves(piesaSelectata);
             }
             else
             {
                 CercuriDeDesenat.Clear();
                 piesaSelectata = null;
             }
-
-            //aici execut
-
+            
             this.Invalidate();
+        }
+        List<Point> GetLegalMoves(Piece piesa)
+        {
+            List<Point> pseudoMoves = piesa.GetPossibleMoves(joculMeu.Grid);
+            List<Point> legalMoves = new List<Point>();
+
+            Point originalPos = piesa.Position;
+            Piece[,] board = joculMeu.Grid;
+
+            foreach (Point targetPos in pseudoMoves)
+            {
+                Piece targetPieceBackup = board[targetPos.X, targetPos.Y];
+                board[targetPos.X, targetPos.Y] = piesa;
+                board[originalPos.X, originalPos.Y] = null;
+                piesa.Position = targetPos; 
+
+                King myKing = joculMeu.GetKing(piesa.Color, board);
+                if (myKing != null && !myKing.VerifyIfInCheck(board))
+                {
+                    legalMoves.Add(targetPos);
+                }
+
+                board[originalPos.X, originalPos.Y] = piesa;
+                board[targetPos.X, targetPos.Y] = targetPieceBackup;
+                piesa.Position = originalPos;
+            }
+
+            return legalMoves;
         }
         void ExecutaMutare(Point tinta)
         {
@@ -144,6 +170,18 @@ namespace Chess
             CercuriDeDesenat.Clear();
             piesaSelectata = null;
             this.Invalidate();
+            if (!ExistaMutariLegale(joculMeu.CurrentTurn))
+            {
+                King regeCurent = joculMeu.GetKing(joculMeu.CurrentTurn, joculMeu.Grid);
+                if (regeCurent.VerifyIfInCheck(joculMeu.Grid))
+                {
+                    MessageBox.Show($"Șah-Mat! Jucătorul {(joculMeu.CurrentTurn == PieceColor.White ? "Negru" : "Alb")} a câștigat.");
+                }
+                else
+                {
+                    MessageBox.Show("Remiză (Pat)!");
+                }
+            }
         }
         private void ChessTable_MouseClick(object sender, MouseEventArgs e)
         {
@@ -155,7 +193,6 @@ namespace Chess
             {
                 ExecutaMutare(tinta);
             }
-            //aici execut
         }
         void IncarcaJoc(string fen)
         {
@@ -176,7 +213,18 @@ namespace Chess
                 }
             }
         }
-
+        bool ExistaMutariLegale(PieceColor color)
+        {
+            foreach (Piece p in joculMeu.Grid)
+            {
+                if (p != null && p.Color == color)
+                {
+                    List<Point> moves = GetLegalMoves(p);
+                    if (moves.Count > 0) return true; 
+                }
+            }
+            return false; 
+        }
         void CreazaPictureBoxPiesa(Piece piesa)
         {
             PictureBox pic = new PictureBox();
