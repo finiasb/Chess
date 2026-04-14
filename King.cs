@@ -32,5 +32,26 @@ namespace Chess
             }
             return moves;
         }
+
+        public bool VerifyIfInCheck(Piece[,] board)
+        {
+            List<Point> possibleMoves = new List<Point>();
+            foreach(Piece piece in board) 
+            {
+                possibleMoves.Clear();
+                if(piece != null && piece.Color != this.Color)
+                {
+                    possibleMoves = piece.GetPossibleMoves(board);
+                    foreach(Point p in possibleMoves)
+                    {
+                        if(p.X == this.Position.X &&  p.Y == this.Position.Y)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
     }
 }

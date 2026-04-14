@@ -44,8 +44,20 @@ namespace Chess
                     e.Graphics.FillRectangle(brush, col * size, row * size, size, size);
                 }
             }
-            if (CercuriDeDesenat.Count == 0)
-                return;
+
+            foreach (PieceColor color in Enum.GetValues(typeof(PieceColor)))
+            {
+                King king = joculMeu.GetKing(color, joculMeu.Grid);
+                if (king != null && king.VerifyIfInCheck(joculMeu.Grid))
+                {
+                    int drawX = king.Position.X * size;
+                    int drawY = (7 - king.Position.Y) * size;
+
+                    e.Graphics.FillEllipse(Brushes.Red, drawX + 5, drawY + 5, size - 10, size - 10);
+                }
+            }
+                
+            if (CercuriDeDesenat.Count == 0) return;
 
             foreach (Point p in CercuriDeDesenat)
             {
@@ -89,11 +101,14 @@ namespace Chess
                 piesaSelectata = null;
             }
 
+            //aici execut
+
             this.Invalidate();
         }
         void ExecutaMutare(Point tinta)
         {
             if (piesaSelectata == null) return;
+
             Point pozitieVeche = piesaSelectata.Position;
 
             PictureBox piesaDeSters = null;
@@ -140,6 +155,7 @@ namespace Chess
             {
                 ExecutaMutare(tinta);
             }
+            //aici execut
         }
         void IncarcaJoc(string fen)
         {
@@ -177,35 +193,6 @@ namespace Chess
             pic.MouseDown += PieceClick;
             this.Controls.Add(pic);
             pic.BringToFront();
-        }
-
-        void ActualizeazaInterfataGrafica()
-        {
-            List<PictureBox> deSters = new List<PictureBox>();
-
-            foreach (Control c in this.Controls)
-            {
-                if (c is PictureBox pic)
-                {
-                    Piece p = (Piece)pic.Tag;
-
-                    bool gasita = false;
-                    for (int x = 0; x < 8; x++)
-                        for (int y = 0; y < 8; y++)
-                            if (joculMeu.Grid[x, y] == p) gasita = true;
-
-                    if (!gasita)
-                    {
-                        deSters.Add(pic);
-                    }
-                    else
-                    {
-                        pic.Location = new Point(p.Position.X * size, (7 - p.Position.Y) * size);
-                    }
-                }
-            }
-
-            foreach (var p in deSters) this.Controls.Remove(p);
         }
     }
 }

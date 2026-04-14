@@ -61,7 +61,17 @@ namespace Chess
                 default: return null;
             }
         }
-
+        public King GetKing(PieceColor color, Piece[,] board)
+        {
+            foreach (var piece in board)
+            {
+                if (piece is King && piece.Color == color)
+                {
+                    return (King)piece;
+                }
+            }
+            return null; 
+        }
         public void MovePiece(Point from, Point to)
         {
             Piece p = Grid[from.X, from.Y];
