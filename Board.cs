@@ -90,5 +90,25 @@ namespace Chess
                 CurrentTurn = (CurrentTurn == PieceColor.White) ? PieceColor.Black : PieceColor.White;
             }
         }
+        public bool VerifyIfInCheck(PieceColor color)
+        {
+            King king = this.GetKing(color, Grid);
+
+            foreach (Piece piece in Grid)
+            {
+                if (piece != null && color != piece.Color)
+                {
+                    List<Point> moves = piece.GetPossibleMoves(Grid);
+                    foreach (Point p in moves)
+                    {
+                        if (p.X == king.Position.X && p.Y == king.Position.Y)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
     }
 }

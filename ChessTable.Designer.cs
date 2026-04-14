@@ -32,12 +32,15 @@
             // 
             // ChessTable
             // 
+            this.AllowDrop = true;
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(784, 761);
             this.DoubleBuffered = true;
             this.Name = "ChessTable";
             this.Text = "Chess";
+            this.DragDrop += new System.Windows.Forms.DragEventHandler(this.Control_DragDrop);
+            this.DragEnter += new System.Windows.Forms.DragEventHandler(this.Control_DragEnter);
             this.Paint += new System.Windows.Forms.PaintEventHandler(this.ChessTable_Paint);
             this.MouseClick += new System.Windows.Forms.MouseEventHandler(this.ChessTable_MouseClick);
             this.ResumeLayout(false);

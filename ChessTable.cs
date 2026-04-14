@@ -21,7 +21,6 @@ namespace Chess
         {
             InitializeComponent();
             this.ClientSize = new Size(800, 800);
-
             string startPosition = "r1b1k2r/ppp1q3/5npp/4N3/3P4/2P3P1/PP2PP1P/RNBQKB1R w KQkq - 0 1";
             LoadGame(startPosition);
         }
@@ -47,7 +46,7 @@ namespace Chess
             foreach (PieceColor color in Enum.GetValues(typeof(PieceColor)))
             {
                 King king = myGame.GetKing(color, myGame.Grid);
-                if (king != null && king.VerifyIfInCheck(myGame.Grid))
+                if (myGame.VerifyIfInCheck(color))
                 {
                     int drawX = king.Position.X * size;
                     int drawY = (7 - king.Position.Y) * size;
@@ -73,58 +72,60 @@ namespace Chess
                 }
             }
         }
-        void PieceClick(object sender, MouseEventArgs e)
+        void PieceMouseDown(object sender, MouseEventArgs e)
         {
             PictureBox pic = sender as PictureBox;
-            if (pic == null) return;
+            if (pic == null || e.Button != MouseButtons.Left) return;
 
             int x = pic.Location.X / size;
             int y = 7 - (pic.Location.Y / size);
-            Point ClickLocation = new Point(x, y);
+            Point clickLocation = new Point(x, y);
 
-            if (selectedPiece != null && AllowedMovingToDraw.Contains(ClickLocation))
+            if (selectedPiece != null && AllowedMovingToDraw.Contains(clickLocation))
             {
-                ExecuteMove(ClickLocation);
+                ExecuteMove(clickLocation);
                 return;
             }
 
-            Piece p = myGame.Grid[x, y];
+            Piece p = pic.Tag as Piece;
             if (p != null && p.Color == myGame.CurrentTurn)
             {
                 selectedPiece = p;
-                AllowedMovingToDraw = GetLegalMoves(selectedPiece);
-            }
-            else
-            {
+                AllowedMovingToDraw = GetLegalMoves(p);
+
+                this.Invalidate();
+
+                pic.DoDragDrop(pic, DragDropEffects.Move);
+
                 AllowedMovingToDraw.Clear();
                 selectedPiece = null;
+                this.Invalidate();
             }
-            this.Invalidate();
         }
-        List<Point> GetLegalMoves(Piece piesa)
+
+        List<Point> GetLegalMoves(Piece piece)
         {
-            List<Point> pseudoMoves = piesa.GetPossibleMoves(myGame.Grid);
+            List<Point> pseudoMoves = piece.GetPossibleMoves(myGame.Grid);
             List<Point> legalMoves = new List<Point>();
 
-            Point originalPos = piesa.Position;
+            Point originalPos = piece.Position;
             Piece[,] board = myGame.Grid;
 
             foreach (Point targetPos in pseudoMoves)
             {
                 Piece targetPieceBackup = board[targetPos.X, targetPos.Y];
-                board[targetPos.X, targetPos.Y] = piesa;
+                board[targetPos.X, targetPos.Y] = piece;
                 board[originalPos.X, originalPos.Y] = null;
-                piesa.Position = targetPos; 
+                piece.Position = targetPos; 
 
-                King myKing = myGame.GetKing(piesa.Color, board);
-                if (myKing != null && !myKing.VerifyIfInCheck(board))
+                if (!myGame.VerifyIfInCheck(piece.Color))
                 {
                     legalMoves.Add(targetPos);
                 }
 
-                board[originalPos.X, originalPos.Y] = piesa;
+                board[originalPos.X, originalPos.Y] = piece;
                 board[targetPos.X, targetPos.Y] = targetPieceBackup;
-                piesa.Position = originalPos;
+                piece.Position = originalPos;
             }
             return legalMoves;
         }
@@ -186,8 +187,7 @@ namespace Chess
             this.Invalidate();
             if (!existLegalMoves(myGame.CurrentTurn))
             {
-                King king = myGame.GetKing(myGame.CurrentTurn, myGame.Grid);
-                if (king.VerifyIfInCheck(myGame.Grid))
+                if (myGame.VerifyIfInCheck(myGame.CurrentTurn))
                 {
                     MessageBox.Show($"Check Mate! Player {(myGame.CurrentTurn == PieceColor.White ? "Black" : "White")} won.");
                 }
@@ -239,6 +239,34 @@ namespace Chess
             }
             return false; 
         }
+        private void Control_DragEnter(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(typeof(PictureBox)))
+            {
+                e.Effect = DragDropEffects.Move;
+            }
+            else
+            {
+                e.Effect = DragDropEffects.None;
+            }
+        }
+        private void Control_DragDrop(object sender, DragEventArgs e)
+        {
+            Point clientPoint = this.PointToClient(new Point(e.X, e.Y));
+
+            int x = clientPoint.X / size;
+            int y = 7 - (clientPoint.Y / size);
+            Point target = new Point(x, y);
+
+            if (selectedPiece != null && AllowedMovingToDraw.Contains(target))
+            {
+                ExecuteMove(target);
+            }
+
+            AllowedMovingToDraw.Clear();
+            selectedPiece = null;
+            this.Invalidate();
+        }
         void createPictureBoxPiece(Piece piece)
         {
             PictureBox pic = new PictureBox();
@@ -246,13 +274,17 @@ namespace Chess
             pic.Location = new Point(piece.Position.X * size, (7 - piece.Position.Y) * size);
             pic.SizeMode = PictureBoxSizeMode.StretchImage;
             pic.BackColor = Color.Transparent;
-
+            pic.AllowDrop = true;
             pic.Tag = piece;
-
             string numeResursa = piece.Type.ToString() + (piece.Color == PieceColor.White ? "W" : "B");
             pic.Image = (Image)Properties.Resources.ResourceManager.GetObject(numeResursa);
 
-            pic.MouseDown += PieceClick;
+            pic.MouseDown += PieceMouseDown;
+            pic.MouseDown += (sender, e) => {
+                
+            };
+            pic.DragEnter += Control_DragEnter;
+            pic.DragDrop += Control_DragDrop;
             this.Controls.Add(pic);
             pic.BringToFront();
         }

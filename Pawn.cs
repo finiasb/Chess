@@ -16,6 +16,7 @@ namespace Chess
             List<Point> result = new List<Point>();
             int forward = (this.Color == PieceColor.White) ? 1 : -1;
             int nextY = Position.Y + forward;
+
             if (IsOnBoard(Position.X, nextY) && board[Position.X, nextY] == null)
             {
                 result.Add(new Point(Position.X, nextY));
@@ -27,6 +28,7 @@ namespace Chess
                     result.Add(new Point(Position.X, doubleNextY));
                 }
             }
+
             int[] diagX = { Position.X - 1, Position.X + 1 };
             foreach (int nx in diagX)
             {
