@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Data;
 using System.Drawing;
 using System.Linq;
+using System.Net.NetworkInformation;
 using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,14 +15,14 @@ namespace Chess
     public partial class ChessTable : Form
     {
         int size = 100;
-        Board myGame = new Board(); 
-        Piece selectedPiece = null;  
+        Board myGame = new Board();
+        Piece selectedPiece = null;
         List<Point> AllowedMovingToDraw = new List<Point>();
         public ChessTable()
         {
             InitializeComponent();
             this.ClientSize = new Size(800, 800);
-            string startPosition = "r1b1k2r/ppp1q3/5npp/4N3/3P4/2P3P1/PP2PP1P/RNBQKB1R w KQkq - 0 1";
+            string startPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             LoadGame(startPosition);
         }
         private void ChessTable_Paint(object sender, PaintEventArgs e)
@@ -46,7 +47,7 @@ namespace Chess
             foreach (PieceColor color in Enum.GetValues(typeof(PieceColor)))
             {
                 King king = myGame.GetKing(color, myGame.Grid);
-                if (myGame.VerifyIfInCheck(color))
+                if (myGame.VerifyIfInCheck(color, king.Position))
                 {
                     int drawX = king.Position.X * size;
                     int drawY = (7 - king.Position.Y) * size;
@@ -54,7 +55,7 @@ namespace Chess
                     e.Graphics.FillEllipse(Brushes.Red, drawX + 5, drawY + 5, size - 10, size - 10);
                 }
             }
-                
+
             if (AllowedMovingToDraw.Count == 0) return;
 
             foreach (Point p in AllowedMovingToDraw)
@@ -76,7 +77,6 @@ namespace Chess
         {
             PictureBox pic = sender as PictureBox;
             if (pic == null || e.Button != MouseButtons.Left) return;
-
             int x = pic.Location.X / size;
             int y = 7 - (pic.Location.Y / size);
             Point clickLocation = new Point(x, y);
@@ -105,7 +105,7 @@ namespace Chess
 
         List<Point> GetLegalMoves(Piece piece)
         {
-            List<Point> pseudoMoves = piece.GetPossibleMoves(myGame.Grid);
+            List<Point> pseudoMoves = piece.GetPossibleMoves(myGame);
             List<Point> legalMoves = new List<Point>();
 
             Point originalPos = piece.Position;
@@ -116,9 +116,10 @@ namespace Chess
                 Piece targetPieceBackup = board[targetPos.X, targetPos.Y];
                 board[targetPos.X, targetPos.Y] = piece;
                 board[originalPos.X, originalPos.Y] = null;
-                piece.Position = targetPos; 
+                piece.Position = targetPos;
+                King king = myGame.GetKing(piece.Color, myGame.Grid);
 
-                if (!myGame.VerifyIfInCheck(piece.Color))
+                if (!myGame.VerifyIfInCheck(piece.Color, king.Position))
                 {
                     legalMoves.Add(targetPos);
                 }
@@ -127,6 +128,21 @@ namespace Chess
                 board[targetPos.X, targetPos.Y] = targetPieceBackup;
                 piece.Position = originalPos;
             }
+
+            if (piece is King kingPiece)
+            {
+                if (kingPiece.CanSmallCastle(myGame))
+                {
+                    int targetY = (kingPiece.Color == PieceColor.White) ? 0 : 7;
+                    legalMoves.Add(new Point(6, targetY));
+                }
+                if (kingPiece.CanLongCastle(myGame))
+                {
+                    int targetY = (kingPiece.Color == PieceColor.White) ? 0 : 7;
+                    legalMoves.Add(new Point(2, targetY));
+                }
+            }
+
             return legalMoves;
         }
         void ExecuteMove(Point target)
@@ -151,11 +167,69 @@ namespace Chess
             if (pieceToDelete != null)
             {
                 this.Controls.Remove(pieceToDelete);
-                pieceToDelete.Dispose(); 
+                pieceToDelete.Dispose();
             }
+            if (selectedPiece.Type == PieceType.Rook)
+                selectedPiece.HasMoved = true;
+            if (selectedPiece.Type == PieceType.King)
+                selectedPiece.HasMoved = true;
 
-            myGame.MovePiece(oldPosition, target);
 
+            if (selectedPiece is Pawn && target == myGame.EnPassantTarget)
+            {
+                int capturedPawnY = oldPosition.Y;
+                Point enemyPawnPos = new Point(target.X, capturedPawnY);
+
+                myGame.Grid[enemyPawnPos.X, enemyPawnPos.Y] = null;
+
+                foreach (Control c in this.Controls)
+                {
+                    if (c is PictureBox pb && pb.Location.X == enemyPawnPos.X * size && pb.Location.Y == (7 - enemyPawnPos.Y) * size)
+                    {
+                        this.Controls.Remove(pb);
+                        pb.Dispose();
+                        break;
+                    }
+                }
+            }
+            if (selectedPiece.Type == PieceType.King && oldPosition.X == 4 && target.X == 6)
+            {
+                myGame.MovePiece(oldPosition, target);
+
+                Point rookOldPos = new Point(7, oldPosition.Y);
+                Point rookNewPos = new Point(5, oldPosition.Y);
+                myGame.MovePiece(rookOldPos, rookNewPos);
+
+                foreach (Control c in this.Controls)
+                {
+                    if (c is PictureBox pb && pb.Tag is Piece p && p.Type == PieceType.Rook && p.Position == rookNewPos)
+                    {
+                        pb.Location = new Point(rookNewPos.X * size, (7 - rookNewPos.Y) * size);
+                        break;
+                    }
+                }
+            }
+            else if (selectedPiece.Type == PieceType.King && oldPosition.X == 4 && target.X == 2)
+            {
+                myGame.MovePiece(oldPosition, target);
+
+                Point rookOldPos = new Point(0, oldPosition.Y);
+                Point rookNewPos = new Point(3, oldPosition.Y);
+                myGame.MovePiece(rookOldPos, rookNewPos);
+
+                foreach (Control c in this.Controls)
+                {
+                    if (c is PictureBox pb && pb.Tag is Piece p && p.Type == PieceType.Rook && p.Position == rookNewPos)
+                    {
+                        pb.Location = new Point(rookNewPos.X * size, (7 - rookNewPos.Y) * size);
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                myGame.MovePiece(oldPosition, target);
+            }
             Piece pieceAfterMove = myGame.Grid[target.X, target.Y];
             foreach (Control c in this.Controls)
             {
@@ -165,7 +239,7 @@ namespace Chess
 
                     if (pieceAfterMove != selectedPiece)
                     {
-                        pb.Tag = pieceAfterMove; 
+                        pb.Tag = pieceAfterMove;
                         string nameResource = pieceAfterMove.Type.ToString() + (pieceAfterMove.Color == PieceColor.White ? "W" : "B");
                         pb.Image = (Image)Properties.Resources.ResourceManager.GetObject(nameResource);
                     }
@@ -187,7 +261,9 @@ namespace Chess
             this.Invalidate();
             if (!existLegalMoves(myGame.CurrentTurn))
             {
-                if (myGame.VerifyIfInCheck(myGame.CurrentTurn))
+                King king = myGame.GetKing(myGame.CurrentTurn, myGame.Grid);
+
+                if (myGame.VerifyIfInCheck(myGame.CurrentTurn, king.Position))
                 {
                     MessageBox.Show($"Check Mate! Player {(myGame.CurrentTurn == PieceColor.White ? "Black" : "White")} won.");
                 }
@@ -234,10 +310,10 @@ namespace Chess
                 if (p != null && p.Color == color)
                 {
                     List<Point> moves = GetLegalMoves(p);
-                    if (moves.Count > 0) return true; 
+                    if (moves.Count > 0) return true;
                 }
             }
-            return false; 
+            return false;
         }
         private void Control_DragEnter(object sender, DragEventArgs e)
         {
@@ -280,9 +356,6 @@ namespace Chess
             pic.Image = (Image)Properties.Resources.ResourceManager.GetObject(numeResursa);
 
             pic.MouseDown += PieceMouseDown;
-            pic.MouseDown += (sender, e) => {
-                
-            };
             pic.DragEnter += Control_DragEnter;
             pic.DragDrop += Control_DragDrop;
             this.Controls.Add(pic);

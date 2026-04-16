@@ -8,6 +8,8 @@ namespace Chess
     {
         public Piece[,] Grid { get; private set; }
         public PieceColor CurrentTurn { get; private set; }
+        public Point? EnPassantTarget { get; set; } = null;
+
         public Board()
         {
             Grid = new Piece[8, 8];
@@ -21,7 +23,7 @@ namespace Chess
             string positions = parts[0];
             CurrentTurn = (parts[1] == "w") ? PieceColor.White : PieceColor.Black;
 
-            int row = 7; 
+            int row = 7;
             int col = 0;
 
             foreach (char c in positions)
@@ -53,7 +55,7 @@ namespace Chess
                 case 'p': return new Pawn(color, PieceType.Pawn, pos);
                 case 'n': return new Knight(color, PieceType.Knight, pos);
                 case 'b': return new Bishop(color, PieceType.Bishop, pos);
-                case 'r': return new Rook(color, PieceType.Rook, pos); 
+                case 'r': return new Rook(color, PieceType.Rook, pos);
                 case 'q': return new Queen(color, PieceType.Queen, pos);
                 case 'k': return new King(color, PieceType.King, pos);
                 default: return null;
@@ -68,40 +70,44 @@ namespace Chess
                     return (King)piece;
                 }
             }
-            return null; 
+            return null;
         }
         public void MovePiece(Point from, Point to)
         {
             Piece p = Grid[from.X, from.Y];
+            EnPassantTarget = null;
 
-            if (p != null)
+            if (p == null) return;
+
+            if (p is Pawn && Math.Abs(from.Y - to.Y) == 2)
             {
-                p.Position = to;
-                Grid[to.X, to.Y] = p;
-                Grid[from.X, from.Y] = null;
-
-                if (p is Pawn)
-                {
-                    if ((p.Color == PieceColor.White && to.Y == 7) || (p.Color == PieceColor.Black && to.Y == 0))
-                    {
-                        Grid[to.X, to.Y] = new Queen(p.Color, PieceType.Queen, to);
-                    }
-                }
-                CurrentTurn = (CurrentTurn == PieceColor.White) ? PieceColor.Black : PieceColor.White;
+                EnPassantTarget = new Point(from.X, (from.Y + to.Y) / 2);
             }
-        }
-        public bool VerifyIfInCheck(PieceColor color)
-        {
-            King king = this.GetKing(color, Grid);
 
+            p.Position = to;
+            Grid[to.X, to.Y] = p;
+            Grid[from.X, from.Y] = null;
+
+            if (p is Pawn)
+            {
+                if ((p.Color == PieceColor.White && to.Y == 7) || (p.Color == PieceColor.Black && to.Y == 0))
+                {
+                    Grid[to.X, to.Y] = new Queen(p.Color, PieceType.Queen, to);
+                }
+            }
+            CurrentTurn = (CurrentTurn == PieceColor.White) ? PieceColor.Black : PieceColor.White;
+
+        }
+        public bool VerifyIfInCheck(PieceColor color, Point kingPosition)
+        {
             foreach (Piece piece in Grid)
             {
-                if (piece != null && color != piece.Color)
+                if (piece != null && piece.Color != color)
                 {
-                    List<Point> moves = piece.GetPossibleMoves(Grid);
+                    List<Point> moves = piece.GetPossibleMoves(this);
                     foreach (Point p in moves)
                     {
-                        if (p.X == king.Position.X && p.Y == king.Position.Y)
+                        if (p.X == kingPosition.X && p.Y == kingPosition.Y)
                         {
                             return true;
                         }

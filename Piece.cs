@@ -13,13 +13,14 @@ namespace Chess
         public PieceColor Color { get; set; }
         public PieceType Type { get; set; }
         public Point Position { get; set; }
+        public bool HasMoved { get; set; } = false;
         public Piece(PieceColor color, PieceType type, Point position)
         {
             Color = color;
             Type = type;
             Position = position;
         }
-        public abstract List<Point> GetPossibleMoves(Piece[,] board);
+        public abstract List<Point> GetPossibleMoves(Board board);
         protected bool IsOnBoard(int x, int y)
         {
             return x >= 0 && x < 8 && y >= 0 && y < 8;

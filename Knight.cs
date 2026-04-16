@@ -11,9 +11,11 @@ namespace Chess
     {
         public Knight(PieceColor color, PieceType type, Point position) : base(color, PieceType.Knight, position) { }
 
-        public override List<Point> GetPossibleMoves(Piece[,] board)
+        public override List<Point> GetPossibleMoves(Board board)
         {
             List<Point> moves = new List<Point>();
+            Piece[,] grid = board.Grid;
+
             int[] dx = { 1, 1, -1, -1, 2, 2, -2, -2 };
             int[] dy = { 2, -2, 2, -2, 1, -1, 1, -1 };
 
@@ -24,7 +26,7 @@ namespace Chess
 
                 if (IsOnBoard(nx, ny))
                 {
-                    if (board[nx, ny] == null || board[nx, ny].Color != this.Color)
+                    if (grid[nx, ny] == null || grid[nx, ny].Color != this.Color)
                     {
                         moves.Add(new Point(nx, ny));
                     }

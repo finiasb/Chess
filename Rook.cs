@@ -10,9 +10,11 @@ namespace Chess
     public class Rook : Piece
     {
         public Rook(PieceColor color, PieceType type, Point position) : base(color, PieceType.Rook, position) { }
-        public override List<Point> GetPossibleMoves(Piece[,] board)
+        public override List<Point> GetPossibleMoves(Board board)
         {
             List<Point> moves = new List<Point>();
+            Piece[,] grid = board.Grid;
+
             int[] dx = { 0, 0, 1, -1 };
             int[] dy = { 1, -1, 0, 0 };
 
@@ -23,13 +25,13 @@ namespace Chess
 
                 while (IsOnBoard(nx, ny))
                 {
-                    if (board[nx, ny] == null)
+                    if (grid[nx, ny] == null)
                     {
                         moves.Add(new Point(nx, ny));
                     }
                     else
                     {
-                        if (board[nx, ny].Color != this.Color)
+                        if (grid[nx, ny].Color != this.Color)
                             moves.Add(new Point(nx, ny));
                         break;
                     }
