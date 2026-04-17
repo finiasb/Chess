@@ -17,13 +17,25 @@ namespace Chess
         int size = 100;
         Board myGame = new Board();
         Piece selectedPiece = null;
+        ChessBot blackBot;
         List<Point> AllowedMovingToDraw = new List<Point>();
         public ChessTable()
         {
             InitializeComponent();
             this.ClientSize = new Size(800, 800);
+            blackBot = new ChessBot(myGame);
             string startPosition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
             LoadGame(startPosition);
+        }
+        private async void TriggerBotMove()
+        {
+            var move = blackBot.GetBestMove(GetLegalMoves);
+
+            if (move.HasValue)
+            {
+                selectedPiece = move.Value.Piece;
+                ExecuteMove(move.Value.Target);
+            }
         }
         private void ChessTable_Paint(object sender, PaintEventArgs e)
         {
@@ -271,6 +283,10 @@ namespace Chess
                 {
                     MessageBox.Show("Tie");
                 }
+            }
+            if (myGame.CurrentTurn == PieceColor.Black)
+            {
+                TriggerBotMove();
             }
         }
         void ChessTable_MouseClick(object sender, MouseEventArgs e)
